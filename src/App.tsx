@@ -6,11 +6,12 @@ import { KanbanBoard } from './components/KanbanBoard';
 import { CalendarView } from './components/CalendarView';
 import { UserManagement } from './components/UserManagement';
 import { Analytics } from './components/Analytics';
+import { ProfileModal } from './components/ProfileModal';
 import { TaskModal } from './components/TaskModal';
 
 function AppContent() {
   const { isAuthenticated } = useApp();
-  const [currentView, setCurrentView] = useState<'board' | 'calendar' | 'users' | 'analytics'>('board');
+  const [currentView, setCurrentView] = useState<'board' | 'calendar' | 'users' | 'analytics' | 'profile'>('board');
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   if (!isAuthenticated) {
@@ -27,6 +28,8 @@ function AppContent() {
         return <UserManagement />;
       case 'analytics':
         return <Analytics />;
+      case 'profile':
+        return <div className="p-6"><ProfileModal isOpen={true} onClose={() => setCurrentView('board')} /></div>;
       default:
         return <KanbanBoard />;
     }

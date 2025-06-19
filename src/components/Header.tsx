@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  CheckCircle2,
+  FileText,
   Calendar,
   Users,
   LogOut,
@@ -13,13 +13,15 @@ import {
   BarChart3,
   Trash2,
   Share2,
+  User as UserIcon,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { BoardModal } from './BoardModal';
+import { ProfileModal } from './ProfileModal';
 
 interface HeaderProps {
-  currentView: 'board' | 'calendar' | 'users' | 'analytics';
-  onViewChange: (view: 'board' | 'calendar' | 'users' | 'analytics') => void;
+  currentView: 'board' | 'calendar' | 'users' | 'analytics' | 'profile';
+  onViewChange: (view: 'board' | 'calendar' | 'users' | 'analytics' | 'profile') => void;
   onCreateTask: () => void;
 }
 
@@ -27,6 +29,7 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
   const { currentUser, logout, boards, currentBoardId, setCurrentBoard, getCurrentBoardTasks, deleteBoard, generateBoardLink } = useApp();
   const [showBoardDropdown, setShowBoardDropdown] = useState(false);
   const [showBoardModal, setShowBoardModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   React.useEffect(() => {
@@ -43,10 +46,7 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
 
   // Фильтрация досок для текущего пользователя
   const userBoards = boards.filter(board => {
-    if (currentUser?.role === 'admin') {
-      return true; // Админ видит все доски
-    }
-    return board.createdBy === currentUser?.id; // Пользователь видит только свои доски
+    return currentUser?.boardIds.includes(board.id);
   });
 
   const handleBoardChange = (boardId: string) => {
@@ -80,10 +80,10 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
         <div className="flex items-center space-x-4 md:space-x-8 flex-1 min-w-0">
           <div className="flex items-center space-x-3 flex-shrink-0">
             <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-blue-600 to-teal-600 rounded-xl">
-              <CheckCircle2 className="w-4 h-4 md:w-6 md:h-6 text-white" />
+              <FileText className="w-4 h-4 md:w-6 md:h-6 text-white" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-lg md:text-xl font-bold text-gray-900 uppercase">KANBANPRO</h1>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900 uppercase">PLANIFY</h1>
               <p className="text-xs md:text-sm text-gray-500 uppercase">{pendingTasks} АКТИВНЫХ ЗАДАЧ</p>
             </div>
           </div>
@@ -93,7 +93,7 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
             <button
               onClick={() => setShowBoardDropdown(!showBoardDropdown)}
               className="flex items-center space-x-2 px-3 md:px-4 py-2 rounded-lg transition-colors w-full text-left"
-              style={{ backgroundColor: '#CCCCFF' }}
+              style={{ backgroundColor: '#b6c2fc' }}
             >
               <Folder className="w-3 h-3 md:w-4 md:h-4 text-gray-600 flex-shrink-0" />
               <span className="font-medium text-gray-900 uppercase truncate text-sm md:text-base">
@@ -114,7 +114,7 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
                         className={`flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-100 transition-colors cursor-pointer ${
                           board.id === currentBoardId ? 'text-blue-700' : 'text-gray-700'
                         }`}
-                        style={board.id === currentBoardId ? { backgroundColor: '#CFE8FF' } : {}}
+                        style={board.id === currentBoardId ? { backgroundColor: '#a4d2fc' } : {}}
                         onClick={() => handleBoardChange(board.id)}
                       >
                         <div className="flex-1 min-w-0">
@@ -122,6 +122,7 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
                           {board.description && (
                             <div className="text-xs text-gray-500 truncate uppercase">{board.description}</div>
                           )}
+                          <div className="text-xs text-gray-400 uppercase">КОД: {board.code}</div>
                         </div>
                         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
@@ -181,7 +182,7 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <Calendar className="w-5 h-5" />
+              <Calendar className="w-5 h-5" style={{ color: currentView === 'calendar' ? '#1d4ed8' : '#91caff' }} />
               <span className="uppercase">КАЛЕНДАРЬ</span>
             </button>
             <button
@@ -195,19 +196,17 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
               <BarChart3 className="w-5 h-5" />
               <span className="uppercase">АНАЛИТИКА</span>
             </button>
-            {currentUser?.role === 'admin' && (
-              <button
-                onClick={() => onViewChange('users')}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  currentView === 'users'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <Users className="w-5 h-5" />
-                <span className="uppercase">ПОЛЬЗОВАТЕЛИ</span>
-              </button>
-            )}
+            <button
+              onClick={() => onViewChange('users')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                currentView === 'users'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Users className="w-5 h-5" />
+              <span className="uppercase">ПОЛЬЗОВАТЕЛИ</span>
+            </button>
           </nav>
         </div>
 
@@ -215,7 +214,7 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
           <button
             onClick={onCreateTask}
             className="flex items-center space-x-1 md:space-x-2 text-gray-800 px-3 md:px-4 py-2 rounded-lg transition-all font-medium"
-            style={{ backgroundColor: '#CCCCFF' }}
+            style={{ backgroundColor: '#b6c2fc' }}
           >
             <Plus className="w-4 h-4 md:w-5 md:h-5" />
             <span className="hidden sm:inline uppercase text-sm md:text-base">СОЗДАТЬ ЗАДАЧУ</span>
@@ -227,13 +226,28 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
           </button>
 
           <div className="flex items-center space-x-2 md:space-x-3">
-            <div className="hidden sm:block text-right">
-              <div className="text-xs md:text-sm font-medium text-gray-900 uppercase">{currentUser?.name}</div>
-              <div className="text-xs text-gray-500 uppercase">{currentUser?.role}</div>
-            </div>
-            <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-xs md:text-sm">
-              {currentUser?.name?.charAt(0).toUpperCase()}
-            </div>
+            <button
+              onClick={() => setShowProfileModal(true)}
+              className="flex items-center space-x-2 hover:bg-gray-100 rounded-lg p-2 transition-colors"
+            >
+              <div className="hidden sm:block text-right">
+                <div className="text-xs md:text-sm font-medium text-gray-900 uppercase">
+                  {currentUser?.firstName} {currentUser?.lastName}
+                </div>
+                <div className="text-xs text-gray-500 uppercase">{currentUser?.role}</div>
+              </div>
+              {currentUser?.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt="Avatar"
+                  className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-xs md:text-sm">
+                  {currentUser?.firstName?.charAt(0).toUpperCase()}{currentUser?.lastName?.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </button>
             <button
               onClick={logout}
               className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
@@ -265,7 +279,7 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
               : 'text-gray-600'
           }`}
         >
-          <Calendar className="w-4 h-4" />
+          <Calendar className="w-4 h-4" style={{ color: currentView === 'calendar' ? '#1d4ed8' : '#91caff' }} />
           <span className="text-xs uppercase">КАЛЕНДАРЬ</span>
         </button>
         <button
@@ -279,24 +293,38 @@ export function Header({ currentView, onViewChange, onCreateTask }: HeaderProps)
           <BarChart3 className="w-4 h-4" />
           <span className="text-xs uppercase">АНАЛИТИКА</span>
         </button>
-        {currentUser?.role === 'admin' && (
-          <button
-            onClick={() => onViewChange('users')}
-            className={`flex-shrink-0 flex items-center justify-center space-x-1 py-2 px-3 rounded-md font-medium transition-colors ${
-              currentView === 'users'
-                ? 'bg-white text-blue-700 shadow-sm'
-                : 'text-gray-600'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span className="text-xs uppercase">ПОЛЬЗОВАТЕЛИ</span>
-          </button>
-        )}
+        <button
+          onClick={() => onViewChange('users')}
+          className={`flex-shrink-0 flex items-center justify-center space-x-1 py-2 px-3 rounded-md font-medium transition-colors ${
+            currentView === 'users'
+              ? 'bg-white text-blue-700 shadow-sm'
+              : 'text-gray-600'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span className="text-xs uppercase">ПОЛЬЗОВАТЕЛИ</span>
+        </button>
+        <button
+          onClick={() => onViewChange('profile')}
+          className={`flex-shrink-0 flex items-center justify-center space-x-1 py-2 px-3 rounded-md font-medium transition-colors ${
+            currentView === 'profile'
+              ? 'bg-white text-blue-700 shadow-sm'
+              : 'text-gray-600'
+          }`}
+        >
+          <UserIcon className="w-4 h-4" />
+          <span className="text-xs uppercase">ПРОФИЛЬ</span>
+        </button>
       </nav>
 
       <BoardModal
         isOpen={showBoardModal}
         onClose={() => setShowBoardModal(false)}
+      />
+
+      <ProfileModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
       />
     </header>
   );

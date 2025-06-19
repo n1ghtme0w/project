@@ -14,8 +14,7 @@ import { format, subDays, isAfter, isBefore, startOfMonth, endOfMonth, eachMonth
 import { ru } from 'date-fns/locale';
 
 export function Analytics() {
-  const { users, getCurrentBoardTasks } = useApp();
-  const tasks = getCurrentBoardTasks();
+  const { users, getCurrentBoardTasks, boards, currentBoardId } = useApp();
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
 
   React.useEffect(() => {
@@ -25,6 +24,10 @@ export function Analytics() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const tasks = getCurrentBoardTasks();
+  const currentBoard = boards.find(board => board.id === currentBoardId);
+  const boardCreationDate = currentBoard ? new Date(currentBoard.createdAt) : new Date();
 
   // Статистика задач
   const totalTasks = tasks.length;
@@ -42,13 +45,14 @@ export function Analytics() {
     isAfter(new Date(task.createdAt), subDays(new Date(), 7))
   ).length;
 
+  // Получение пользователей текущей доски
+  const boardUsers = users.filter(user => user.boardIds.includes(currentBoardId || ''));
+
   // Статистика пользователей по задачам
-  const userTaskStats = users.map(user => {
-    const userTasks = tasks.filter(task => 
-      task.assigneeIds?.includes(user.id) || task.assigneeId === user.id
-    );
+  const userTaskStats = boardUsers.map(user => {
+    const userTasks = tasks.filter(task => task.assigneeIds.includes(user.id));
     return {
-      name: user.name,
+      name: `${user.firstName} ${user.lastName}`,
       total: userTasks.length,
       completed: userTasks.filter(task => task.status === 'completed').length,
       inProgress: userTasks.filter(task => task.status === 'in-progress').length,
@@ -59,13 +63,13 @@ export function Analytics() {
   // Процент выполнения
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  // Месячная статистика
-  const last6Months = eachMonthOfInterval({
-    start: subMonths(new Date(), 5),
+  // Месячная статистика с момента создания доски
+  const monthsFromCreation = eachMonthOfInterval({
+    start: startOfMonth(boardCreationDate),
     end: new Date()
   });
 
-  const monthlyStats = last6Months.map(month => {
+  const monthlyStats = monthsFromCreation.map(month => {
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
     
@@ -168,15 +172,18 @@ export function Analytics() {
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-3 h-3 md:w-4 md:h-4 bg-yellow-300 rounded"></div>
+                <div className="w-3 h-3 md:w-4 md:h-4 rounded" style={{ backgroundColor: '#fcfba2' }}></div>
                 <span className="text-xs md:text-sm text-gray-700 uppercase">В ПРОЦЕССЕ</span>
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs md:text-sm font-medium text-gray-900">{inProgressTasks}</span>
                 <div className="w-16 md:w-20 bg-gray-200 rounded-full h-2">
                   <div 
-                    className="bg-yellow-300 h-2 rounded-full" 
-                    style={{ width: `${totalTasks > 0 ? (inProgressTasks / totalTasks) * 100 : 0}%` }}
+                    className="h-2 rounded-full" 
+                    style={{ 
+                      backgroundColor: '#fcfba2',
+                      width: `${totalTasks > 0 ? (inProgressTasks / totalTasks) * 100 : 0}%` 
+                    }}
                   ></div>
                 </div>
               </div>
@@ -249,7 +256,7 @@ export function Analytics() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
                       <div className="w-6 h-6 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                        {user.name.charAt(0).toUpperCase()}
+                        {user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase()}
                       </div>
                       <span className="font-medium text-gray-900 uppercase text-sm">{user.name}</span>
                     </div>
@@ -288,7 +295,7 @@ export function Analytics() {
           // Десктопная версия - таблица
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-gray-200" style={{ backgroundColor: '#cfd7ff' }}>
+              <thead className="border-b border-gray-200" style={{ backgroundColor: '#b6c2fc' }}>
                 <tr>
                   <th className="text-left py-3 px-4 font-medium text-gray-700 uppercase">ПОЛЬЗОВАТЕЛЬ</th>
                   <th className="text-center py-3 px-4 font-medium text-gray-700 uppercase">ВСЕГО</th>
@@ -306,7 +313,7 @@ export function Analytics() {
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                            {user.name.charAt(0).toUpperCase()}
+                            {user.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase()}
                           </div>
                           <span className="font-medium text-gray-900 uppercase">{user.name}</span>
                         </div>
@@ -366,8 +373,8 @@ export function Analytics() {
             <div className="text-xs md:text-sm text-green-700 uppercase">ОБЩИЙ ПРОЦЕНТ ВЫПОЛНЕНИЯ</div>
           </div>
           <div className="text-center p-4 bg-purple-50 rounded-lg">
-            <div className="text-xl md:text-2xl font-bold text-purple-600">{users.length}</div>
-            <div className="text-xs md:text-sm text-purple-700 uppercase">АКТИВНЫХ ПОЛЬЗОВАТЕЛЕЙ</div>
+            <div className="text-xl md:text-2xl font-bold text-purple-600">{boardUsers.length}</div>
+            <div className="text-xs md:text-sm text-purple-700 uppercase">УЧАСТНИКОВ ДОСКИ</div>
           </div>
         </div>
       </div>

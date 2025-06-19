@@ -38,7 +38,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
     description: '',
     status: defaultStatus,
     priority: 'medium' as Task['priority'],
-    assigneeIds: [] as string[], // Изменено на массив для множественного назначения
+    assigneeIds: [] as string[],
     deadline: '',
     isPinned: false,
   });
@@ -53,6 +53,9 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
 
+  // Получение пользователей текущей доски
+  const boardUsers = users.filter(user => user.boardIds.includes(currentBoardId || ''));
+
   useEffect(() => {
     if (task) {
       setFormData({
@@ -60,7 +63,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
         description: task.description,
         status: task.status,
         priority: task.priority,
-        assigneeIds: task.assigneeIds || (task.assigneeId ? [task.assigneeId] : []),
+        assigneeIds: task.assigneeIds || [],
         deadline: task.deadline ? format(new Date(task.deadline), 'yyyy-MM-dd') : '',
         isPinned: task.isPinned,
       });
@@ -92,7 +95,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
         formData.description !== task.description ||
         formData.status !== task.status ||
         formData.priority !== task.priority ||
-        JSON.stringify(formData.assigneeIds) !== JSON.stringify(task.assigneeIds || (task.assigneeId ? [task.assigneeId] : [])) ||
+        JSON.stringify(formData.assigneeIds) !== JSON.stringify(task.assigneeIds || []) ||
         formData.deadline !== (task.deadline ? format(new Date(task.deadline), 'yyyy-MM-dd') : '') ||
         formData.isPinned !== task.isPinned ||
         newAttachments.length > 0 ||
@@ -147,7 +150,6 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
       ...formData,
       deadline: formData.deadline ? new Date(formData.deadline).toISOString() : undefined,
       assigneeIds: formData.assigneeIds,
-      assigneeId: formData.assigneeIds[0] || currentUser?.id || '', // Обратная совместимость
       creatorId: currentUser?.id || '',
       boardId: task?.boardId || currentBoardId || '1',
       attachments: processedAttachments,
@@ -176,7 +178,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
   };
 
   const handleAddComment = () => {
-    if (!newComment.trim() || currentUser?.role !== 'admin') return;
+    if (!newComment.trim()) return;
 
     const comment: Comment = {
       id: Date.now().toString(),
@@ -379,7 +381,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#CFE8FF] focus:border-[#CFE8FF] transition-colors"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 placeholder="ВВЕДИТЕ НАЗВАНИЕ ЗАДАЧИ..."
                 required
               />
@@ -392,7 +394,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
               </label>
               
               {/* Панель инструментов форматирования */}
-              <div className="flex items-center space-x-1 mb-2 p-2 rounded-xl border" style={{ backgroundColor: '#CFE8FF' }}>
+              <div className="flex items-center space-x-1 mb-2 p-2 rounded-xl border" style={{ backgroundColor: '#b6c2fc' }}>
                 <button
                   type="button"
                   onClick={() => applyTextFormat('bold')}
@@ -466,7 +468,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={6}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#CFE8FF] focus:border-[#CFE8FF] transition-colors resize-y min-h-[120px]"
+                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-y min-h-[120px]"
                 placeholder="ОПИШИТЕ ЗАДАЧУ..."
               />
               
@@ -493,7 +495,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="flex items-center space-x-2 px-4 py-2 rounded-xl transition-colors"
-                    style={{ backgroundColor: '#CFE8FF' }}
+                    style={{ backgroundColor: '#b6c2fc' }}
                   >
                     <Upload className="w-4 h-4" />
                     <span className="uppercase">ПРИКРЕПИТЬ ФАЙЛЫ</span>
@@ -507,7 +509,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                         ? 'bg-red-100 text-red-700 hover:bg-red-200' 
                         : 'hover:opacity-80'
                     }`}
-                    style={!isRecording ? { backgroundColor: '#CFE8FF' } : {}}
+                    style={!isRecording ? { backgroundColor: '#b6c2fc' } : {}}
                   >
                     {isRecording ? (
                       <>
@@ -560,7 +562,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                   <div className="space-y-2">
                     <div className="text-sm font-medium text-gray-700 uppercase px-3 py-1 rounded">СУЩЕСТВУЮЩИЕ ВЛОЖЕНИЯ:</div>
                     {attachments.map((attachment) => (
-                      <div key={attachment.id} className="flex items-center justify-between p-3 rounded-xl border" style={{ backgroundColor: '#c8c8f7', borderColor: '#a7a7fc' }}>
+                      <div key={attachment.id} className="flex items-center justify-between p-3 rounded-xl border" style={{ backgroundColor: '#a4d2fc', borderColor: '#b6c2fc' }}>
                         <div className="flex items-center space-x-2">
                           <Paperclip className="w-4 h-4 text-blue-600" />
                           <span className="text-sm text-blue-800 uppercase">{attachment.name}</span>
@@ -627,7 +629,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
             </div>
 
             {/* Статус, Приоритет и Закрепление */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 uppercase">
                   СТАТУС
@@ -635,7 +637,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value as Task['status'] })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#CFE8FF] focus:border-[#CFE8FF] transition-colors uppercase"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors uppercase"
                 >
                   <option value="created">{statusLabels.created}</option>
                   <option value="in-progress">{statusLabels['in-progress']}</option>
@@ -650,52 +652,51 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as Task['priority'] })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#CFE8FF] focus:border-[#CFE8FF] transition-colors uppercase"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors uppercase"
                 >
                   <option value="low">{priorityLabels.low}</option>
                   <option value="medium">{priorityLabels.medium}</option>
                   <option value="high">{priorityLabels.high}</option>
                 </select>
               </div>
+            </div>
 
-              <div className="flex items-center justify-center h-full">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.isPinned}
-                    onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
-                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700 uppercase">ЗАКРЕПИТЬ ЗАДАЧУ</span>
-                  <Pin className="w-4 h-4 text-orange-600" />
-                </label>
-              </div>
+            {/* Закрепление задачи */}
+            <div className="flex items-center justify-center">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isPinned}
+                  onChange={(e) => setFormData({ ...formData, isPinned: e.target.checked })}
+                  className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                />
+                <span className="text-sm font-medium text-gray-700 uppercase">ЗАКРЕПИТЬ ЗАДАЧУ</span>
+                <Pin className="w-4 h-4 text-orange-600" />
+              </label>
             </div>
 
             {/* Назначение пользователей и Срок выполнения */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {currentUser?.role === 'admin' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 uppercase">
-                    НАЗНАЧИТЬ ПОЛЬЗОВАТЕЛЕЙ
-                  </label>
-                  <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-xl p-3">
-                    {users.map(user => (
-                      <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.assigneeIds.includes(user.id)}
-                          onChange={(e) => handleAssigneeChange(user.id, e.target.checked)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700 uppercase">
-                          {user.name} ({user.role.toUpperCase()})
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 uppercase">
+                  НАЗНАЧИТЬ ПОЛЬЗОВАТЕЛЕЙ
+                </label>
+                <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 rounded-xl p-3">
+                  {boardUsers.map(user => (
+                    <label key={user.id} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.assigneeIds.includes(user.id)}
+                        onChange={(e) => handleAssigneeChange(user.id, e.target.checked)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700 uppercase">
+                        {user.firstName} {user.lastName} ({user.role.toUpperCase()})
+                      </span>
+                    </label>
+                  ))}
                 </div>
-              )}
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 uppercase">
@@ -706,13 +707,13 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                   value={formData.deadline}
                   min={getTodayDate()}
                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#CFE8FF] focus:border-[#CFE8FF] transition-colors"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
               </div>
             </div>
 
             {/* Раздел комментариев */}
-            {task && currentUser?.role === 'admin' && (
+            {task && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3 uppercase">
                   КОММЕНТАРИИ ({comments.length})
@@ -725,10 +726,10 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                       <div key={comment.id} className="bg-gray-50 rounded-xl p-3">
                         <div className="flex items-center space-x-2 mb-1">
                           <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                            {commenter?.name?.charAt(0).toUpperCase()}
+                            {commenter?.firstName?.charAt(0).toUpperCase()}{commenter?.lastName?.charAt(0).toUpperCase()}
                           </div>
                           <span className="text-sm font-medium text-gray-900 uppercase">
-                            {commenter?.name}
+                            {commenter?.firstName} {commenter?.lastName}
                           </span>
                           <span className="text-xs text-gray-500">
                             {format(new Date(comment.createdAt), 'dd.MM.yyyy, HH:mm')}
@@ -746,14 +747,14 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="ДОБАВИТЬ КОММЕНТАРИЙ..."
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#CFE8FF] focus:border-[#CFE8FF] transition-colors text-sm"
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
                     onKeyPress={(e) => e.key === 'Enter' && handleAddComment()}
                   />
                   <button
                     type="button"
                     onClick={handleAddComment}
                     className="px-4 py-2 text-gray-700 rounded-xl transition-colors text-sm font-medium uppercase"
-                    style={{ backgroundColor: '#CFE8FF' }}
+                    style={{ backgroundColor: '#b6c2fc' }}
                   >
                     ДОБАВИТЬ
                   </button>
@@ -790,7 +791,7 @@ export function TaskModal({ task, isOpen, onClose, defaultStatus = 'created' }: 
             <button
               onClick={handleSubmit}
               className="flex items-center space-x-2 text-gray-800 px-6 py-3 rounded-xl transition-all font-medium uppercase"
-              style={{ backgroundColor: '#CFE8FF' }}
+              style={{ backgroundColor: '#b6c2fc' }}
             >
               <Save className="w-4 h-4" />
               <span>{task ? 'ОБНОВИТЬ' : 'СОЗДАТЬ'} ЗАДАЧУ</span>

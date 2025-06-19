@@ -57,7 +57,7 @@ export function CalendarView() {
     low: '#BAFFC9',
   };
 
-  // Мобильная версия - список задач
+  // Мобильная версия - список задач с точками приоритета
   if (isMobile) {
     const tasksWithDates = tasks
       .filter(task => task.deadline)
@@ -67,16 +67,97 @@ export function CalendarView() {
       <div className="p-4 h-full overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-2">
-            <CalendarIcon className="w-5 h-5" style={{ color: '#CFE8FF' }} />
+            <CalendarIcon className="w-5 h-5" style={{ color: '#91caff' }} />
             <h2 className="text-lg font-bold text-gray-900 uppercase">
               КАЛЕНДАРЬ ЗАДАЧ
             </h2>
           </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => navigateMonth('prev')}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentDate(new Date())}
+              className="px-3 py-1 rounded-lg transition-colors font-medium uppercase text-sm"
+              style={{ color: '#91caff' }}
+            >
+              СЕГОДНЯ
+            </button>
+            <button
+              onClick={() => navigateMonth('next')}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
+        {/* Мини календарь с точками */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+          <div className="p-4 text-center font-semibold text-gray-900 uppercase" style={{ backgroundColor: '#b6c2fc' }}>
+            {format(currentDate, 'LLLL yyyy', { locale: ru }).toUpperCase()}
+          </div>
+          
+          <div className="grid grid-cols-7 text-center text-xs font-medium text-gray-500 border-b border-gray-200">
+            {['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'].map(day => (
+              <div key={day} className="p-2 uppercase">{day}</div>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-7">
+            {calendarDays.map((day, index) => {
+              const dayTasks = getTasksForDay(day);
+              const isCurrentMonth = isSameMonth(day, currentDate);
+              const isDayToday = isToday(day);
+              const highPriorityTasks = dayTasks.filter(task => task.priority === 'high');
+              const mediumPriorityTasks = dayTasks.filter(task => task.priority === 'medium');
+              const lowPriorityTasks = dayTasks.filter(task => task.priority === 'low');
+
+              return (
+                <div
+                  key={index}
+                  className={`p-2 border-b border-r border-gray-200 min-h-[60px] ${
+                    !isCurrentMonth ? 'bg-gray-50' : 'bg-white'
+                  }`}
+                >
+                  <div className={`text-sm font-medium mb-1 ${
+                    isDayToday 
+                      ? 'text-white w-6 h-6 rounded-full flex items-center justify-center text-xs'
+                      : isCurrentMonth 
+                      ? 'text-gray-900' 
+                      : 'text-gray-400'
+                  }`}
+                  style={isDayToday ? { backgroundColor: '#91caff' } : {}}
+                  >
+                    {format(day, 'd')}
+                  </div>
+                  
+                  {/* Точки приоритета */}
+                  <div className="flex flex-wrap gap-1">
+                    {highPriorityTasks.map((_, i) => (
+                      <div key={`high-${i}`} className="w-2 h-2 rounded-full" style={{ backgroundColor: priorityColors.high }}></div>
+                    ))}
+                    {mediumPriorityTasks.map((_, i) => (
+                      <div key={`medium-${i}`} className="w-2 h-2 rounded-full" style={{ backgroundColor: priorityColors.medium }}></div>
+                    ))}
+                    {lowPriorityTasks.map((_, i) => (
+                      <div key={`low-${i}`} className="w-2 h-2 rounded-full" style={{ backgroundColor: priorityColors.low }}></div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Список задач */}
         <div className="space-y-3">
+          <h3 className="text-md font-semibold text-gray-900 uppercase">ЗАДАЧИ С ДАТАМИ</h3>
           {tasksWithDates.map((task) => {
-            const assignee = users.find(user => user.id === task.assigneeId);
+            const assignees = users.filter(user => task.assigneeIds.includes(user.id));
             const taskDate = new Date(task.deadline!);
             const dayName = format(taskDate, 'EEEE', { locale: ru });
             
@@ -94,9 +175,9 @@ export function CalendarView() {
                     <h3 className="font-semibold text-gray-900 uppercase text-sm mb-1">
                       {task.title}
                     </h3>
-                    {assignee && (
+                    {assignees.length > 0 && (
                       <div className="text-xs text-gray-600 uppercase">
-                        {assignee.name}
+                        {assignees.map(user => user.firstName + ' ' + user.lastName).join(', ')}
                       </div>
                     )}
                   </div>
@@ -132,7 +213,7 @@ export function CalendarView() {
       {/* Заголовок календаря */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
-          <CalendarIcon className="w-6 h-6" style={{ color: '#CFE8FF' }} />
+          <CalendarIcon className="w-6 h-6" style={{ color: '#91caff' }} />
           <h2 className="text-2xl font-bold text-gray-900 uppercase">
             {format(currentDate, 'LLLL yyyy', { locale: ru }).toUpperCase()}
           </h2>
@@ -148,7 +229,7 @@ export function CalendarView() {
           <button
             onClick={() => setCurrentDate(new Date())}
             className="px-4 py-2 rounded-lg transition-colors font-medium uppercase"
-            style={{ color: '#CFE8FF' }}
+            style={{ color: '#91caff' }}
           >
             СЕГОДНЯ
           </button>
@@ -164,7 +245,7 @@ export function CalendarView() {
       {/* Календарная сетка */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {/* Заголовки дней недели */}
-        <div className="grid grid-cols-7" style={{ backgroundColor: '#cfd7ff' }}>
+        <div className="grid grid-cols-7" style={{ backgroundColor: '#b6c2fc' }}>
           {['ВС', 'ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'].map(day => (
             <div key={day} className="p-3 text-center text-sm font-medium text-gray-700 border-b border-gray-200 uppercase">
               {day}
@@ -193,14 +274,14 @@ export function CalendarView() {
                     ? 'text-gray-900' 
                     : 'text-gray-400'
                 }`}
-                style={isDayToday ? { backgroundColor: '#CFE8FF' } : {}}
+                style={isDayToday ? { backgroundColor: '#91caff' } : {}}
                 >
                   {format(day, 'd')}
                 </div>
                 
                 <div className="space-y-1">
                   {dayTasks.slice(0, 3).map(task => {
-                    const assignee = users.find(user => user.id === task.assigneeId);
+                    const assignees = users.filter(user => task.assigneeIds.includes(user.id));
                     return (
                       <div
                         key={task.id}
@@ -212,9 +293,10 @@ export function CalendarView() {
                         }}
                       >
                         <div className="font-medium truncate uppercase">{task.title}</div>
-                        {assignee && (
+                        {assignees.length > 0 && (
                           <div className="text-xs opacity-75 truncate uppercase">
-                            {assignee.name}
+                            {assignees[0].firstName} {assignees[0].lastName}
+                            {assignees.length > 1 && ` +${assignees.length - 1}`}
                           </div>
                         )}
                       </div>
